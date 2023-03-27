@@ -18,14 +18,10 @@ public class receiver {
 
         // Sum the ascii characters of the word
         public Integer generateChecksum(String s) {
-            int asciiInt;
             int sum = 0;
-            for (int i = 0; i < s.length(); i++) {
-                asciiInt = (int) s.charAt(i);
-                sum = sum + asciiInt;
-
-                //System.out.println(s.charAt(i) + "   " + asciiInt);
-                if ((int) s.charAt(i) == 46) {
+            for(char ch : s.toCharArray()){
+                sum += ch;
+                if(ch == '.'){
                     isLastMessage = true;
                 }
             }
@@ -50,30 +46,11 @@ public class receiver {
                 return "ACK" + seqNo.toString();
             }
             else {
-                if (seqNo == 0) {
-                    seqNo = 1;
-                }
-                else {
-                    seqNo = 0;
-                }
-                return "ACK" + seqNo.toString();
+                seqNo = (seqNo + 1) % 2;
+                return "ACK" + seqNo;
             }
         }
-
-        // Alternates the 0 and 1
-        public void getSequenceNum() {
-            if (seqNo == 0) {
-                seqNo = 1;
-            }
-            else {
-                seqNo = 0;
-            }
-        }
-
     }
-
-    static String hostName;
-    static int portNumber;
 
     public static void main(String[] args) {
         if (args.length != 2)
@@ -82,11 +59,8 @@ public class receiver {
             System.exit(1);
         }
 
-        hostName = args[0];
-        portNumber = Integer.parseInt(args[1]);
-
         try {
-            new receiver().startReceiver(hostName, portNumber);
+            new receiver().startReceiver(args[0], Integer.parseInt(args[1]));
         } catch (Exception e) {
             System.out.println("Something falied: " + e.getMessage());
             e.printStackTrace();
@@ -105,9 +79,8 @@ public class receiver {
             bufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             String input, output;
-            output = "";
             int totalReceived = 0;
-            String msg = "";
+            StringBuilder msg = new StringBuilder();
             System.out.println("Waiting... connect sender");
 
             // Create new packet object
@@ -121,7 +94,7 @@ public class receiver {
 
                 // Split message by spaces (parse)
                 pak.parseMessage(input);
-                msg = msg + pak.content + " ";
+                msg.append(pak.content).append(" ");
                 totalReceived++;
                 // Print out current sequence number, total packets received, message, and ACK to be transmitted
                 output = "Waiting " + pak.seqNo + ", " + totalReceived + ", " + input + ", " + pak.validateMessage();
@@ -129,7 +102,7 @@ public class receiver {
                 // Validate message (from packet object) - checks the checksum and then returns the proper ACK
                 writerOut.println(pak.validateMessage());
                 // If last message, then return the full message :)
-                if (pak.isLastMessage == true) {
+                if (pak.isLastMessage) {
                     System.out.println("Message: " + msg);
                 }
             }
